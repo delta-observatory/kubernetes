@@ -1,0 +1,70 @@
+# Image build Job template. scripts/build.sh renders and applies it.
+# kaniko builds the Dockerfile of one component repository into a tarball.
+# A privileged k3s container imports the tarball into containerd as
+# localhost/delta-{{COMPONENT}}:{{IMAGE_TAG}}. Workloads use
+# imagePullPolicy: Never. No registry is involved.
+# The build context is the live working tree of the component repository.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{JOB_NAME}}
+  namespace: delta-observatory
+  labels:
+    app.kubernetes.io/part-of: delta-observatory
+    app.kubernetes.io/component: image-build
+    delta/build-target: {{COMPONENT}}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  activeDeadlineSeconds: 1800
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: image-build
+        delta/build-target: {{COMPONENT}}
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: build
+          image: gcr.io/kaniko-project/executor:v1.24.0-debug
+          args:
+            - --context=dir:///workspace/src
+            - --dockerfile=/workspace/src/Dockerfile
+            - --destination=localhost/delta-{{COMPONENT}}:{{IMAGE_TAG}}
+            - --no-push
+            - --tar-path=/out/image.tar
+            - --verbosity=info
+          volumeMounts:
+            - name: src
+              mountPath: /workspace/src
+              readOnly: true
+            - name: out
+              mountPath: /out
+      containers:
+        - name: import
+          image: rancher/k3s:v1.35.4-k3s1
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              ctr --address /run/k3s/containerd/containerd.sock --namespace k8s.io images import /out/image.tar
+              ctr --address /run/k3s/containerd/containerd.sock --namespace k8s.io images ls | grep 'localhost/delta-{{COMPONENT}}:{{IMAGE_TAG}}'
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+            - name: out
+              mountPath: /out
+            - name: containerd-sock
+              mountPath: /run/k3s/containerd/containerd.sock
+      volumes:
+        - name: src
+          hostPath:
+            path: {{SOURCE_DIR}}
+            type: Directory
+        - name: out
+          emptyDir: {}
+        - name: containerd-sock
+          hostPath:
+            path: /run/k3s/containerd/containerd.sock
+            type: Socket

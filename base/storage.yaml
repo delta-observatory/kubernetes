@@ -1,0 +1,13 @@
+# Artifact storage. local-path is node-local. Every workload that mounts it
+# runs on the single node, so ReadWriteOnce permits several pods.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: delta-artifacts
+  namespace: delta-observatory
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi

@@ -1,0 +1,56 @@
+# Worker: claims jobs from PostgreSQL and writes results and artifacts.
+# raw/ and datasets/ are read-only host paths from the workspace.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delta-worker
+  namespace: delta-observatory
+  labels: {app.kubernetes.io/name: delta-worker, app.kubernetes.io/part-of: delta-observatory}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app.kubernetes.io/name: delta-worker}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: delta-worker, app.kubernetes.io/part-of: delta-observatory}
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: worker
+          image: localhost/delta-workers:latest
+          imagePullPolicy: Never
+          env:
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: delta-db-app, key: uri}}
+            - name: DELTA_WORKER_ID
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            - name: DELTA_WORKER_VERSION
+              valueFrom: {configMapKeyRef: {name: delta-versions, key: workers}}
+          envFrom:
+            - configMapRef: {name: delta-worker-env}
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits: {memory: 3Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: raw, mountPath: /data/raw, readOnly: true}
+            - {name: datasets, mountPath: /data/catalog/datasets, readOnly: true}
+            - {name: artifacts, mountPath: /data/artifacts}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: raw
+          hostPath: {path: /home/richardtidwell/repos/delta-observatory/raw, type: Directory}
+        - name: datasets
+          hostPath: {path: /home/richardtidwell/repos/delta-observatory/datasets, type: Directory}
+        - name: artifacts
+          persistentVolumeClaim: {claimName: delta-artifacts}
+        - name: tmp
+          emptyDir: {}

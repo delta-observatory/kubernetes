@@ -1,0 +1,33 @@
+# CloudNativePG cluster for Delta Observatory records.
+# CNPG creates the delta owner role and the Secret delta-db-app
+# (keys: username, password, host, port, dbname, uri).
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: delta-db
+  namespace: delta-observatory
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.1-system-trixie
+  affinity:
+    podAntiAffinityType: preferred
+  bootstrap:
+    initdb:
+      database: delta
+      owner: delta
+      encoding: UTF8
+      localeCType: C
+      localeCollate: C
+  postgresql:
+    parameters:
+      max_connections: "50"
+      shared_buffers: 256MB
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+  storage:
+    storageClass: local-path
+    size: 10Gi

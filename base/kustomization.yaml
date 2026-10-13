@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: delta-observatory
+resources:
+  - namespace.yaml
+  - database.yaml
+  - storage.yaml
+  - worker.yaml
+  - api.yaml
+configMapGenerator:
+  - name: delta-worker-env
+    literals:
+      - DELTA_RAW_ROOT=/data/raw
+      - DELTA_CATALOG_ROOT=/data/catalog
+      - DELTA_ARTIFACT_ROOT=/data/artifacts
+      - DELTA_DATASETS=tess-spoc-light-curves
+      - DELTA_LEASE_SECONDS=60
+  - name: delta-api-env
+    literals:
+      - DELTA_ARTIFACT_ROOT=/data/artifacts
+      - DELTA_CORS_ORIGINS=
+  # Image tags of the running release. Keep them equal to images[].newTag.
+  - name: delta-versions
+    literals:
+      - database=0.1.0-20261012205551
+      - workers=0.1.0-20261012212423
+      - backend=0.1.0-20261012212602
+images:
+  - name: localhost/delta-workers
+    newTag: 0.1.0-20261012212423
+  - name: localhost/delta-backend
+    newTag: 0.1.0-20261012212602

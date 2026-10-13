@@ -1,0 +1,65 @@
+# Delta Observatory deployment
+
+This repository holds the k3s manifests for the Delta Observatory components on the single node `machine`.
+Manifests are applied with `kubectl`. No GitOps controller and no image registry are involved.
+
+```text
+LAN ──► NodePort 30870 ──► Service delta-api ──► Deployment delta-api (stateless)
+                                                     │ reads
+                                                     ▼
+              Cluster delta-db (CloudNativePG) ◄── rows ──► Deployment delta-worker
+                                                     ▲            │ reads raw/, datasets/ (host paths, read-only)
+                                                     │            ▼ writes
+                                   PVC delta-artifacts ◄──────────┘
+```
+
+- Namespace: `delta-observatory`
+- API: `http://10.0.0.47:30870/api/docs` on the LAN. No ingress, TLS, or authentication.
+- Database: CNPG cluster `delta-db`, database and owner `delta`. CNPG creates the Secret `delta-db-app`.
+- Images: `localhost/delta-<component>:<tag>`, built in the cluster by kaniko, `imagePullPolicy: Never`.
+
+## Files
+
+| File | Content |
+|---|---|
+| `base/namespace.yaml` | Namespace. |
+| `base/database.yaml` | CNPG `Cluster` with one instance on `local-path` storage. |
+| `base/storage.yaml` | `delta-artifacts` PVC for artifact files. |
+| `base/worker.yaml` | Worker Deployment. Mounts `raw/` and `datasets/` read-only and the artifact PVC read-write. |
+| `base/api.yaml` | API Deployment and NodePort Service. Mounts the artifact PVC read-only. |
+| `base/kustomization.yaml` | Resources, environment ConfigMaps, and the selected image tags. |
+| `builds/build-image.template.yaml` | kaniko build Job template. Not in the kustomization. |
+| `builds/migrate.template.yaml` | Migration Job template. Not in the kustomization. |
+| `scripts/build.sh` | Builds one component image and prints its tag. |
+| `scripts/migrate.sh` | Applies migrations from one database image. |
+| `scripts/set-tag.sh` | Selects one component tag in `base/kustomization.yaml`. |
+
+The worker and the API mount `local-path` volumes and host paths on one node.
+A second node needs a different storage arrangement.
+
+## Release
+
+```bash
+cd kubernetes
+DB=$(scripts/build.sh database)
+WORKERS=$(scripts/build.sh workers)
+BACKEND=$(scripts/build.sh backend)
+scripts/set-tag.sh database "$DB"
+scripts/set-tag.sh workers "$WORKERS"
+scripts/set-tag.sh backend "$BACKEND"
+kubectl apply -k base
+kubectl -n delta-observatory wait cluster/delta-db --for=condition=Ready --timeout=10m
+scripts/migrate.sh "$DB"
+kubectl -n delta-observatory rollout status deploy/delta-worker deploy/delta-api --timeout=5m
+```
+
+The build context is the live working tree of each component repository, including uncommitted edits.
+Commit each component before a release that you want to reproduce.
+
+## Checks
+
+```bash
+kubectl -n delta-observatory get cluster,pods,pvc
+curl -s http://10.0.0.47:30870/api/health
+kubectl -n delta-observatory logs deploy/delta-worker --tail=50
+```

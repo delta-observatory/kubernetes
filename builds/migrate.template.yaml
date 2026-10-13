@@ -1,0 +1,30 @@
+# Migration Job template. scripts/migrate.sh renders and applies it.
+# It runs database/migrate.sh from localhost/delta-database:{{IMAGE_TAG}}.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{JOB_NAME}}
+  namespace: delta-observatory
+  labels:
+    app.kubernetes.io/part-of: delta-observatory
+    app.kubernetes.io/component: migrate
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: localhost/delta-database:{{IMAGE_TAG}}
+          imagePullPolicy: Never
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: delta-db-app
+                  key: uri
