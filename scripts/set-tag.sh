@@ -1,6 +1,6 @@
 #!/bin/sh
 # Select one component image tag in base/kustomization.yaml.
-# Usage: scripts/set-tag.sh <database|workers|backend> <tag>
+# Usage: scripts/set-tag.sh <database|workers|backend|frontend> <tag>
 set -eu
 COMPONENT="${1:?component required}"
 TAG="${2:?tag required}"

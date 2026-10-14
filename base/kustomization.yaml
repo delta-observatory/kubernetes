@@ -7,6 +7,7 @@ resources:
   - storage.yaml
   - worker.yaml
   - api.yaml
+  - frontend.yaml
 configMapGenerator:
   - name: delta-worker-env
     literals:
@@ -25,8 +26,11 @@ configMapGenerator:
       - database=0.1.0-20261012205551
       - workers=0.1.0-20261012212423
       - backend=0.1.0-20261012212602
+      - frontend=0.1.0-20261013233302
 images:
   - name: localhost/delta-workers
     newTag: 0.1.0-20261012212423
   - name: localhost/delta-backend
     newTag: 0.1.0-20261012212602
+  - name: localhost/delta-frontend
+    newTag: 0.1.0-20261013233302
