@@ -21,16 +21,19 @@ configMapGenerator:
       - DELTA_ARTIFACT_ROOT=/data/artifacts
       - DELTA_CORS_ORIGINS=
   # Image tags of the running release. Keep them equal to images[].newTag.
+  # A fixed name: a tag change for one component does not restart the others.
   - name: delta-versions
+    options:
+      disableNameSuffixHash: true
     literals:
       - database=0.1.0-20261012205551
       - workers=0.1.0-20261012212423
       - backend=0.1.0-20261012212602
-      - frontend=0.1.0-20261013233302
+      - frontend=0.1.0-20261013234916
 images:
   - name: localhost/delta-workers
     newTag: 0.1.0-20261012212423
   - name: localhost/delta-backend
     newTag: 0.1.0-20261012212602
   - name: localhost/delta-frontend
-    newTag: 0.1.0-20261013233302
+    newTag: 0.1.0-20261013234916

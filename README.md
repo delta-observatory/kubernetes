@@ -60,8 +60,8 @@ scripts/migrate.sh "$DB"
 kubectl -n delta-observatory rollout status deploy/delta-worker deploy/delta-api deploy/delta-frontend --timeout=5m
 ```
 
-The worker reads its version from the `delta-versions` ConfigMap. Any tag change in that ConfigMap gives it a new name, so the worker restarts.
-A restart returns a running job to the queue. Check `GET /api/runs` for running jobs before a release.
+The worker reads its version from the `delta-versions` ConfigMap at startup. The ConfigMap has a fixed name, so a frontend or backend release does not restart the worker.
+A worker release restarts the worker, and a restart returns a running job to the queue. Check `GET /api/runs` for running jobs before a worker release.
 The build context is the live working tree of each component repository, including uncommitted edits.
 Commit each component before a release that you want to reproduce.
 
