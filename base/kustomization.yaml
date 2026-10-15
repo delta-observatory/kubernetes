@@ -26,14 +26,14 @@ configMapGenerator:
     options:
       disableNameSuffixHash: true
     literals:
-      - database=0.1.0-20261012205551
+      - database=0.1.0-20261014215156
       - workers=0.1.0-20261012212423
-      - backend=0.1.0-20261014202040
-      - frontend=0.1.0-20261014202500
+      - backend=0.1.0-20261014215214
+      - frontend=0.1.0-20261014215229
 images:
   - name: localhost/delta-workers
     newTag: 0.1.0-20261012212423
   - name: localhost/delta-backend
-    newTag: 0.1.0-20261014202040
+    newTag: 0.1.0-20261014215214
   - name: localhost/delta-frontend
-    newTag: 0.1.0-20261014202500
+    newTag: 0.1.0-20261014215229
