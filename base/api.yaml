@@ -45,10 +45,14 @@ spec:
             capabilities: {drop: ["ALL"]}
           volumeMounts:
             - {name: artifacts, mountPath: /data/artifacts, readOnly: true}
+            # The cohort guard reads experiments/cohorts.json. A directory mount shows each atomic replace of the file.
+            - {name: experiments, mountPath: /data/experiments, readOnly: true}
             - {name: tmp, mountPath: /tmp}
       volumes:
         - name: artifacts
           persistentVolumeClaim: {claimName: delta-artifacts}
+        - name: experiments
+          hostPath: {path: /home/richardtidwell/repos/delta-observatory/experiments, type: Directory}
         - name: tmp
           emptyDir: {}
 ---
