@@ -8,7 +8,7 @@ LAN ──► NodePort 30871 ──► Service delta-frontend ──► Deployme
                                                           │ /api/
                                                           ▼
 LAN ──► NodePort 30870 ──► Service delta-api ──► Deployment delta-api (stateless)
-                                                     │ reads
+                                                     │ reads rows, and experiments/cohorts.json (host path, read-only)
                                                      ▼
               Cluster delta-db (CloudNativePG) ◄── rows ──► Deployment delta-worker
                                                      ▲            │ reads raw/, datasets/ (host paths, read-only)
@@ -18,7 +18,7 @@ LAN ──► NodePort 30870 ──► Service delta-api ──► Deployment de
 
 - Namespace: `delta-observatory`
 - Frontend: `http://10.0.0.47:30871/` on the LAN. nginx sends `/api/` to the `delta-api` Service.
-- API: `http://10.0.0.47:30870/api/docs` on the LAN. No ingress, TLS, or authentication.
+- API: `http://10.0.0.47:30870/api/docs` on the LAN. The API needs a bearer token. No ingress or TLS.
 - Database: CNPG cluster `delta-db`, database and owner `delta`. CNPG creates the Secret `delta-db-app`.
 - Images: `localhost/delta-<component>:<tag>`, built in the cluster by kaniko, `imagePullPolicy: Never`.
 
@@ -30,7 +30,7 @@ LAN ──► NodePort 30870 ──► Service delta-api ──► Deployment de
 | `base/database.yaml` | CNPG `Cluster` with one instance on `local-path` storage. |
 | `base/storage.yaml` | `delta-artifacts` PVC for artifact files. |
 | `base/worker.yaml` | Worker Deployment. Mounts `raw/` and `datasets/` read-only and the artifact PVC read-write. |
-| `base/api.yaml` | API Deployment and NodePort Service. Mounts the artifact PVC read-only. |
+| `base/api.yaml` | API Deployment and NodePort Service. Mounts the artifact PVC and `experiments/` read-only. The cohort guard reads `experiments/cohorts.json`. |
 | `base/frontend.yaml` | Frontend Deployment and NodePort Service 30871. No volumes except temporary nginx directories. |
 | `base/kustomization.yaml` | Resources, environment ConfigMaps, and the selected image tags. |
 | `builds/build-image.template.yaml` | kaniko build Job template. Not in the kustomization. |
