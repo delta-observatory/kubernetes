@@ -22,7 +22,7 @@ configMapGenerator:
       - DELTA_CORS_ORIGINS=
       - DELTA_COHORTS_PATH=/data/experiments/cohorts.json
   # Image tags of the running release. Keep them equal to images[].newTag.
-  # Source commits: database 00913dd, workers 5b8e4eb, backend b94e2aa, frontend 4d405a7.
+  # Source commits: database 4e0d1ae, workers ea1f95e, backend 64c8605, frontend 80dfca0.
   # Update this line with each release. The build context is the working tree, so commit first.
   # A fixed name: a tag change for one component does not restart the others.
   - name: delta-versions
