@@ -1,0 +1,30 @@
+# Migration rehearsal Job template. scripts/rehearse.sh renders and applies it.
+# It runs database/migrate.sh from localhost/delta-database:{{IMAGE_TAG}} against the copy {{DATABASE}}.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{JOB_NAME}}
+  namespace: delta-observatory
+  labels:
+    app.kubernetes.io/part-of: delta-observatory
+    app.kubernetes.io/component: migrate-rehearsal
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: migrate-rehearsal
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: localhost/delta-database:{{IMAGE_TAG}}
+          imagePullPolicy: Never
+          env:
+            - {name: DB_USER, valueFrom: {secretKeyRef: {name: delta-db-app, key: username}}}
+            - {name: DB_PASSWORD, valueFrom: {secretKeyRef: {name: delta-db-app, key: password}}}
+            - {name: DB_HOST, valueFrom: {secretKeyRef: {name: delta-db-app, key: host}}}
+            - {name: DB_PORT, valueFrom: {secretKeyRef: {name: delta-db-app, key: port}}}
+            - {name: DATABASE_URL, value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/{{DATABASE}}"}
