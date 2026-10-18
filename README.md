@@ -1,5 +1,7 @@
 # Delta Observatory deployment
 
+This repository is one component of [Delta Observatory](https://github.com/delta-observatory/delta-observatory). The entry repository describes the application and restores every component.
+
 This repository holds the k3s manifests for the Delta Observatory components on a single k3s node.
 Manifests are applied with `kubectl`. No GitOps controller and no image registry are involved.
 
@@ -98,3 +100,7 @@ curl -s http://localhost:30870/api/health
 curl -s http://localhost:30871/healthz
 kubectl -n delta-observatory logs deploy/delta-worker --tail=50
 ```
+
+## License
+
+The code is under the [MIT License](LICENSE).
