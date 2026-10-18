@@ -1,6 +1,6 @@
 # Delta Observatory deployment
 
-This repository holds the k3s manifests for the Delta Observatory components on the single node `machine`.
+This repository holds the k3s manifests for the Delta Observatory components on a single k3s node.
 Manifests are applied with `kubectl`. No GitOps controller and no image registry are involved.
 
 ```text
@@ -17,8 +17,8 @@ LAN ──► NodePort 30870 ──► Service delta-api ──► Deployment de
 ```
 
 - Namespace: `delta-observatory`
-- Frontend: `http://10.0.0.47:30871/` on the LAN. nginx sends `/api/` to the `delta-api` Service.
-- API: `http://10.0.0.47:30870/api/docs` on the LAN. The API needs a bearer token. No ingress or TLS.
+- Frontend: `http://<node>:30871/`, where `<node>` is the node address on the LAN. nginx sends `/api/` to the `delta-api` Service.
+- API: `http://<node>:30870/api/docs` on the LAN. The API needs a bearer token. No ingress or TLS.
 - Database: CNPG cluster `delta-db`, database and owner `delta`. CNPG creates the Secret `delta-db-app`.
 - Images: `localhost/delta-<component>:<tag>`, built in the cluster by kaniko, `imagePullPolicy: Never`.
 
@@ -94,7 +94,7 @@ A restore removes records that clients wrote after the dump. Artifact files on t
 
 ```bash
 kubectl -n delta-observatory get cluster,pods,pvc
-curl -s http://10.0.0.47:30870/api/health
-curl -s http://10.0.0.47:30871/healthz
+curl -s http://localhost:30870/api/health
+curl -s http://localhost:30871/healthz
 kubectl -n delta-observatory logs deploy/delta-worker --tail=50
 ```

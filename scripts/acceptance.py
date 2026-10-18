@@ -21,7 +21,7 @@ import time
 import urllib.error
 import urllib.request
 
-API = os.environ.get('DELTA_API_URL', 'http://10.0.0.47:30870/api').rstrip('/')
+API = os.environ.get('DELTA_API_URL', 'http://localhost:30870/api').rstrip('/')
 VERIFY = Path(__file__).resolve().parents[2] / 'backend/scripts/verify_export.py'
 SCHEMA = Path(__file__).resolve().parents[2] / 'database/contracts/exports/manifest/v1.schema.json'
 
