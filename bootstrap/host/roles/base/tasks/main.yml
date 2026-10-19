@@ -1,0 +1,32 @@
+- name: Set the static hostname
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: Keep cloud-init from replacing the hostname
+  ansible.builtin.copy:
+    dest: /etc/cloud/cloud.cfg.d/99-delta-hostname.cfg
+    content: |
+      preserve_hostname: true
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Resolve the hostname locally
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "127.0.1.1\t{{ inventory_hostname }}"
+
+- name: Use UTC
+  community.general.timezone:
+    name: Etc/UTC
+
+- name: Install chrony for network time
+  ansible.builtin.apt:
+    name: chrony
+    state: present
+
+- name: Run chrony at boot
+  ansible.builtin.systemd_service:
+    name: chrony.service
+    enabled: true
+    state: started

@@ -28,8 +28,28 @@ Run each playbook from this directory.
 ansible-playbook facts.yml
 ```
 
+[site.yml](site.yml) applies the host baseline that this document describes:
+
+| Role | Configuration |
+|---|---|
+| `base` | Hostname, local hostname resolution, UTC, and chrony. |
+| `ssh` | Key-only SSH without root login. |
+| `firewall` | UFW policies, the WireGuard allowance, and SSH from the management peers. |
+| `wireguard` | The package, configuration permissions, and the interface service. |
+| `updates` | Daily package lists and unattended security updates. |
+| `storage` | The `/var` and `/srv` mounts, the cloud-init growth setting, and the application and backup directories. |
+
+The `wireguard` role does not manage the interface configuration, because that file contains the private key.
+The `storage` role does not create partitions, volumes, or filesystems.
+The private inventory supplies the management addresses, the SSH peers, and the filesystem UUIDs.
+
+```bash
+ansible-playbook site.yml --check --diff -K
+```
+
 Sudo requires the `delta` password.
 Run each playbook that uses sudo with `-K`, so that Ansible asks for that password.
+Ansible uses `sudo.ws`, the original sudo, because `sudo-rs` changes the password prompt that Ansible expects.
 Run it with `--check --diff` first. Check mode reports differences and makes no change.
 
 ## Access and hostname

@@ -1,0 +1,12 @@
+# Host configuration for the single k3s VPS.
+# Run with --check --diff -K first. Check mode reports differences and makes no change.
+- name: Configure the VPS host
+  hosts: vps
+  become: true
+  roles:
+    - base
+    - ssh
+    - firewall
+    - wireguard
+    - updates
+    - storage

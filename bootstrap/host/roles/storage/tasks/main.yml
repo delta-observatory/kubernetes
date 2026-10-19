@@ -1,0 +1,49 @@
+# STORAGE.md defines the layout. This role keeps the mounts and paths. It does
+# not create partitions, volumes, or filesystems.
+- name: Keep cloud-init from growing the root partition
+  ansible.builtin.copy:
+    dest: /etc/cloud/cloud.cfg.d/99-delta-storage.cfg
+    content: |
+      growpart:
+        mode: "off"
+      resize_rootfs: false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Mount /var and /srv by filesystem UUID
+  ansible.posix.mount:
+    path: "{{ item.path }}"
+    src: "UUID={{ item.uuid }}"
+    fstype: ext4
+    opts: "{{ item.opts }}"
+    dump: "0"
+    passno: "2"
+    state: mounted
+  loop:
+    - { path: /var, uuid: "{{ delta_var_uuid }}", opts: "defaults,discard" }
+    - { path: /srv, uuid: "{{ delta_srv_uuid }}", opts: "defaults,discard,nodev,nosuid" }
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Create the application directory
+  ansible.builtin.file:
+    path: /srv/delta-observatory
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Restrict operator backups to root
+  ansible.builtin.file:
+    path: /srv/delta-observatory/operator-backups
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Keep the earlier backup path as a link
+  ansible.builtin.file:
+    src: /srv/delta-observatory/operator-backups
+    dest: /root/delta-bootstrap-backups
+    state: link

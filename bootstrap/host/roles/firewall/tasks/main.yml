@@ -1,0 +1,54 @@
+# Rules are added before UFW is enabled, so SSH through WireGuard stays permitted.
+- name: Install UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: Filter IPv6 as well as IPv4
+  ansible.builtin.lineinfile:
+    path: /etc/default/ufw
+    regexp: "^IPV6="
+    line: IPV6=yes
+
+- name: Permit WireGuard from any address
+  community.general.ufw:
+    rule: allow
+    port: "{{ delta_wg_port | string }}"
+    proto: udp
+    comment: WireGuard management
+
+- name: Permit SSH from each management peer through WireGuard only
+  community.general.ufw:
+    rule: allow
+    interface_in: "{{ delta_wg_interface }}"
+    from_ip: "{{ item.address }}"
+    to_ip: "{{ delta_wg_address }}"
+    port: "22"
+    proto: tcp
+    comment: "{{ item.comment }}"
+  loop: "{{ delta_ssh_peers }}"
+  loop_control:
+    label: "{{ item.comment }}"
+
+- name: Deny incoming traffic by default
+  community.general.ufw:
+    direction: incoming
+    default: deny
+
+- name: Allow outgoing traffic by default
+  community.general.ufw:
+    direction: outgoing
+    default: allow
+
+- name: Deny forwarded traffic by default
+  community.general.ufw:
+    direction: routed
+    default: deny
+
+- name: Log blocked packets at the low level
+  community.general.ufw:
+    logging: low
+
+- name: Enable UFW at boot
+  community.general.ufw:
+    state: enabled

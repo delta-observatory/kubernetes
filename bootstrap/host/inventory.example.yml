@@ -7,3 +7,11 @@ all:
         delta-observatory-vps-01:
           ansible_host: delta
           ansible_user: delta
+          delta_wg_interface: wg-delta
+          delta_wg_port: 51820
+          delta_wg_address: <VPS management address>
+          delta_ssh_peers:
+            - { address: <desktop management address>, comment: Private SSH }
+            - { address: <router management address>, comment: Router private SSH }
+          delta_var_uuid: <var filesystem UUID>
+          delta_srv_uuid: <srv filesystem UUID>
