@@ -9,7 +9,8 @@ This document defines planned work. The repository currently deploys the home in
 No cloud deployment, Flux configuration, or host preparation automation exists here yet.
 
 The [initial host baseline](bootstrap/host/README.md) defines the configured SSH and host firewall controls.
-K3s installation, Ansible automation, and private administrative access remain planned.
+Administrative SSH uses a dedicated WireGuard connection outside Kubernetes.
+K3s installation and Ansible automation remain planned.
 
 ## Deployment decisions
 
@@ -19,10 +20,11 @@ K3s installation, Ansible automation, and private administrative access remain p
 | Deployment repository | This `kubernetes` repository | Keeps desired deployment state beside the existing manifests. |
 | GitOps controller | Flux | Applies repository changes and reports differences from the desired state. |
 | Host preparation | Ansible, with a minimal initial SSH setup | Keeps operating-system configuration repeatable and independent of Kubernetes. |
+| Administrative access | Dedicated WireGuard connection and SSH key authentication | Keeps public SSH closed and recovery independent of Kubernetes. |
 | Database | One CloudNativePG PostgreSQL instance | Preserves the database contracts and PostgreSQL job queue. |
 | Application | Existing frontend, API, and worker images | Preserves one maintained application across both installations. |
 | Storage | Node-local persistent volumes | Fits one host without a distributed storage service. |
-| Public access | Cloudflare Tunnel and Cloudflare Access | Provides an authenticated entry without public application ports on the host. |
+| Application access | Cloudflare Tunnel and Cloudflare Access | Provides an authenticated entry without public application ports on the host. |
 | Continuous integration | Standard GitHub-hosted Linux runners | Tests and image builds use public repository runner allowances. |
 | Image distribution | GHCR images pinned by digest | Gives the host reproducible images without building source on the VPS. |
 
@@ -72,7 +74,7 @@ Complete these steps before the first application deployment:
 5. Create an administrator account with SSH key authentication and sudo access.
 6. Test a second SSH session and the OVH recovery console.
 7. Disable SSH password authentication and direct root SSH access.
-8. Restrict SSH to the administrator's approved source addresses.
+8. Restrict SSH to the approved WireGuard peer after testing private access and recovery.
 9. Configure equivalent IPv4 and IPv6 firewall rules.
 10. Apply operating-system security updates and configure time synchronization.
 11. Configure security update installation with explicit maintenance windows for reboots.
@@ -82,7 +84,8 @@ Complete these steps before the first application deployment:
 15. Test host restart, SSH recovery, Kubernetes readiness, DNS, and persistent volume access.
 
 Keep provider-console access available while changing SSH or firewall rules.
-If the administrator address is unstable, configure an administrative VPN before restricting SSH.
+WireGuard device authentication permits a changing administrator public address.
+Permit public UDP port 51820 for WireGuard and keep public TCP port 22 closed.
 The implementation must test firewall forwarding rules with Kubernetes networking.
 A generic host firewall policy alone does not prove that container ports are private.
 
