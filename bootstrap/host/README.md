@@ -16,7 +16,7 @@ uv tool install ansible-core==2.21.5
 ansible-galaxy collection install -r requirements.yml
 ```
 
-The collections install into `collections/`, which Git ignores.
+The collections install into `~/.local/share/delta-observatory/ansible/collections/`, outside the repository.
 Copy [inventory.example.yml](inventory.example.yml) to `~/.config/delta-observatory/ansible/inventory.yml`.
 Keep that inventory outside Git.
 Its `ansible_host` value is the SSH alias for the private WireGuard address.
