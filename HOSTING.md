@@ -8,10 +8,12 @@ The home installation remains the private environment for large scientific workl
 This document defines planned work. The repository currently deploys the home installation through the commands in [README.md](README.md).
 No cloud deployment, Flux configuration, or host preparation automation exists here yet.
 
-The [initial host baseline](bootstrap/host/README.md) defines the configured SSH and host firewall controls.
+The [initial host baseline](bootstrap/host/README.md) defines configured access, firewall controls, operating-system maintenance, and restart checks.
 Administrative SSH normally uses the RB5009 router's dedicated WireGuard connection outside Kubernetes.
 The desktop retains a separate WireGuard profile for manual recovery.
-K3s installation and Ansible automation remain planned.
+The host uses synchronized UTC, daily unattended security updates, and controlled reboots.
+Private SSH and firewall checks pass after a complete host restart.
+Application directories, bounded logs, k3s installation, and Ansible automation remain planned.
 
 ## Deployment decisions
 
@@ -78,7 +80,7 @@ Complete these steps before the first application deployment:
 8. Restrict SSH to the approved WireGuard peers after testing private access and recovery.
 9. Configure equivalent IPv4 and IPv6 firewall rules.
 10. Apply operating-system security updates and configure time synchronization.
-11. Configure security update installation with explicit maintenance windows for reboots.
+11. Retain daily security installation and use a controlled maintenance window for required reboots.
 12. Create application data directories with explicit ownership and permissions.
 13. Configure bounded system and container logs.
 14. Install k3s from the pinned release through the host playbook.

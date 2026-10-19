@@ -1,7 +1,7 @@
 # Initial host baseline
 
 This document defines the host baseline before k3s installation.
-The baseline covers the administrator account, hostname, private SSH access, and host firewall.
+The baseline covers administrator access, the hostname, the host firewall, operating-system maintenance, and recovery checks.
 [HOSTING.md](../../HOSTING.md) defines the remaining host preparation and deployment work.
 Ansible automation remains planned.
 
@@ -18,7 +18,8 @@ The OVH KVM console provides a separate recovery path.
 preserve_hostname: true
 ```
 
-The static hostname and the `127.0.1.1` entry in `/etc/hosts` use the same name.
+The selected static hostname resolves to `127.0.1.1` through `/etc/hosts`.
+The file can also retain provider hostname aliases.
 
 `/etc/ssh/sshd_config.d/00-delta-access.conf` defines SSH authentication:
 
@@ -110,6 +111,73 @@ The WireGuard allowance has the comment `WireGuard management`.
 The desktop SSH allowance has the comment `Private SSH`.
 The router SSH allowance has the comment `Router private SSH`.
 WireGuard authenticates each peer without a fixed home public address.
+
+## Operating-system maintenance
+
+The host uses UTC and synchronized network time.
+Ubuntu's `apt-daily.timer` and `apt-daily-upgrade.timer` units remain enabled.
+The package configuration enables daily index updates and unattended security installation.
+The allowed package origins retain Ubuntu's vendor defaults.
+Automatic reboots remain disabled.
+Required reboots use an operator-controlled maintenance window.
+
+Keep Ubuntu package phasing enabled.
+Phasing delays selected updates while Ubuntu checks their effect across installations.
+Deferred non-security packages alone do not indicate a failed security upgrade.
+Record installed versions, pending packages, and reboot evidence in private operator records.
+
+### Package maintenance procedure
+
+1. Check recovery-console access before package maintenance.
+2. Save root-only configuration backups under `/root/delta-bootstrap-backups/`.
+3. Include SSH, WireGuard, firewall, network, package, hostname, and boot configuration in those backups.
+4. Protect backup contents as credentials.
+5. Refresh package indexes.
+6. Review an upgrade simulation, including package additions, removals, and deferred updates.
+7. Apply eligible upgrades with package removals prohibited.
+8. Preserve local configuration files unless a reviewed change requires replacement.
+9. Run the upgrade through a system service that survives SSH interruption.
+10. Save its package log and final service result in the private backup directory.
+11. Check the service result if its client disconnects.
+12. Check `dpkg --audit` and `apt-get check` after the upgrade.
+13. Check an unattended-upgrade dry run.
+14. Check pending security updates and reboot requirements.
+
+The upgrade service's exit status and package log determine whether the transaction succeeded.
+A disconnected client alone does not establish an upgrade failure.
+Package updates can interrupt the SSH listener while an existing session remains connected.
+
+Before ending the existing session:
+
+1. Check SSH configuration with `sshd -t`.
+2. Check that `ssh.socket` is active.
+3. Test a new private SSH connection with connection sharing disabled.
+
+### Controlled host restart
+
+Before rebooting:
+
+1. Check that package operations completed successfully.
+2. Check bootloader configuration syntax with `grub-script-check`.
+3. Check the selected kernel image and its initramfs, which contains the files needed during early startup.
+4. Retain the previous working kernel.
+5. Record the current boot identifier and kernel version.
+6. Check recovery-console availability.
+
+After rebooting:
+
+1. Test a new private SSH connection through the router with the desktop recovery profile inactive.
+2. Check that the boot identifier changed and the selected kernel runs.
+3. Check SSH authentication, both WireGuard peers, management routes, and the firewall policy.
+4. Check the hostname, hostname resolution, DNS, and network time synchronization.
+5. Check package health, pending security updates, reboot requirements, and failed system services.
+6. Test that public TCP ports 22, 80, and 443 remain blocked.
+7. Save the results in private operator records.
+
+Kubernetes readiness and persistent-volume checks require separate acceptance after k3s installation.
+The [Ubuntu package guide](https://ubuntu.com/server/docs/how-to/software/package-management/) describes package maintenance.
+The [automatic update guide](https://ubuntu.com/server/docs/how-to/software/automatic-updates/) describes unattended security updates and reboot controls.
+The [phased update guide](https://ubuntu.com/server/docs/explanation/software/about-apt-upgrade-and-phased-updates/) explains deferred updates.
 
 ## Verification
 
