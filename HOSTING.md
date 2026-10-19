@@ -14,8 +14,7 @@ The desktop retains a separate WireGuard profile for manual recovery.
 The host uses synchronized UTC, daily unattended security updates, and controlled reboots.
 Private SSH and firewall checks pass after a complete host restart.
 Application directories, bounded logs, k3s installation, and Ansible automation remain planned.
-Root capacity isolation remains required before k3s installation.
-The [storage plan](bootstrap/host/STORAGE.md) defines proposed sizes, offline migration requirements, and acceptance checks.
+The [storage layout](bootstrap/host/STORAGE.md) keeps `/`, `/var`, and `/srv` on separate filesystems.
 
 ## Deployment decisions
 
@@ -138,7 +137,7 @@ Do not copy the entire home installation merely to populate the cloud interface.
 
 These figures are initial planning budgets, not measured application requirements.
 Check actual usable capacity before assigning persistent volumes.
-Apply the [storage layout](bootstrap/host/STORAGE.md) before assigning cloud storage paths.
+The [storage layout](bootstrap/host/STORAGE.md) defines the host filesystems and application paths.
 
 | RAM allocation | Initial budget |
 |---|---:|
@@ -153,7 +152,7 @@ Preserve CPU capacity for PostgreSQL, the API, and cluster services during worke
 Reduce worker concurrency or job size if memory pressure occurs.
 Do not use swap as a substitute for sufficient worker memory.
 
-| Disk allocation | Proposed size |
+| Disk allocation | Size |
 |---|---:|
 | Root filesystem | 16 GiB |
 | `/var`, including k3s runtime files, images, and logs | 16 GiB |

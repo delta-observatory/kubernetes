@@ -1,0 +1,12 @@
+# Host values for delta-storage-migrate. Install as /etc/delta-storage/storage.conf.
+# Keep the host's copy and its partition tables outside Git.
+DISK=/dev/sda
+PSEP=
+ROOT_UUID=<root filesystem UUID>
+BOOT_UUID=<boot filesystem UUID>
+ROOT_BLOCKS=4194304
+ROOT_SECTORS=33554432
+VG=delta
+VAR_SIZE_MIB=16384
+VAR_UUID=<new /var filesystem UUID>
+SRV_UUID=<new /srv filesystem UUID>
