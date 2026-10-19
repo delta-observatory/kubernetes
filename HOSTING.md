@@ -8,6 +8,9 @@ The home installation remains the private environment for large scientific workl
 This document defines planned work. The repository currently deploys the home installation through the commands in [README.md](README.md).
 No cloud deployment, Flux configuration, or host preparation automation exists here yet.
 
+The [initial host baseline](bootstrap/host/README.md) defines the configured SSH and host firewall controls.
+K3s installation, Ansible automation, and private administrative access remain planned.
+
 ## Deployment decisions
 
 | Item | Decision | Reason |
