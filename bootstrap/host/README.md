@@ -90,7 +90,7 @@ An SSH reload requires a successful syntax check and inspection of the effective
 
 A dedicated WireGuard connection links the home RB5009 router to the VPS.
 The router interface is `wg-delta-ovh`. The VPS interface is `wg-delta`.
-The approved home LAN can reach only TCP port 22 on the VPS management address through this connection.
+The approved home LAN can reach only TCP ports 22 and 6443 on the VPS management address through this connection.
 SSH continues to require an authorized key on each administrator device.
 The existing home VPN, DNS settings, default routes, and network isolation rules retain their configuration.
 
@@ -118,10 +118,10 @@ Both `main` and `wan2` contain this `/32` route, which preserves management acce
 The public VPS endpoint follows the current main Internet route.
 Automatic failover between Internet connections is outside this configuration.
 
-The router's `delta-ovh` firewall chain permits LAN SSH requests and their replies.
+The router's `delta-ovh` firewall chain permits LAN SSH and Kubernetes API requests and their replies.
 It blocks other forwarded tunnel traffic, including new connections from the VPS to the LAN.
 Its forward-chain entry rules follow the existing network isolation checks and precede FastTrack.
-The router translates permitted LAN SSH connections to its own management address.
+The router translates permitted LAN connections to its own management address.
 The VPS requires no route to the home LAN.
 Existing remote VPN clients are outside the approved source range.
 
@@ -155,13 +155,16 @@ UFW starts at boot and filters IPv4 and IPv6 traffic.
 | Outgoing traffic | Allow by default. |
 | Forwarded traffic | Deny. Kubernetes requires a separate review of this policy. |
 | Public inbound service | UDP port 51820 for WireGuard, for both address families. |
-| Private inbound service | TCP port 22 on `wg-delta`, from either approved peer address to the VPS management address. |
+| Private inbound service | TCP ports 22 and 6443 on `wg-delta`, from either approved peer address to the VPS management address. |
+| Kubernetes networks | All traffic from the pod network `10.42.0.0/16` and the service network `10.43.0.0/16`. |
 | Public SSH | No allowance for TCP port 22, for either address family. |
 | Logging | UFW level `low`. |
 
 The WireGuard allowance has the comment `WireGuard management`.
 The desktop SSH allowance has the comment `Private SSH`.
 The router SSH allowance has the comment `Router private SSH`.
+The Kubernetes API allowances add ` Kubernetes API` to those comments.
+The Kubernetes network allowances have the comments `k3s pods` and `k3s services`.
 WireGuard authenticates each peer without a fixed home public address.
 
 ## Operating-system maintenance
@@ -336,7 +339,8 @@ If WireGuard fails, use the OVH KVM console to inspect its service, configuratio
 Keep recovery credentials outside the VPS.
 Do not expose SSH publicly as the permanent recovery procedure.
 
-Do not apply this initial firewall policy to a running Kubernetes node.
-The [k3s requirements](https://docs.k3s.io/installation/requirements) define additional network requirements.
-Pod traffic, service traffic, forwarding, NodePorts, and Kubernetes firewall chains need separate rules and tests before k3s deployment.
+The [k3s requirements](https://docs.k3s.io/installation/requirements) define the Kubernetes network requirements.
+NodePorts and host ports bypass the UFW INPUT rules, because kube-proxy forwards that traffic before UFW filters it.
+k3s accepts NodePort traffic only on `127.0.0.1`. Do not use NodePort Services or host ports for public access.
+After each network change, test from outside that public TCP ports 22, 80, 443, 6443, and 10250 and the NodePorts stay closed.
 Host INPUT rules alone do not establish Kubernetes network isolation.
