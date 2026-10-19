@@ -6,14 +6,17 @@ Ubuntu 26.04 is the selected operating system.
 The home installation remains the private environment for large scientific workloads.
 
 This document defines planned work. The repository currently deploys the home installation through the commands in [README.md](README.md).
-No cloud deployment, Flux configuration, or host preparation automation exists here yet.
+The [host playbook](bootstrap/host/README.md#ansible) prepares the VPS and installs k3s.
+No cloud application deployment or Flux configuration exists here yet.
 
 The [initial host baseline](bootstrap/host/README.md) defines configured access, firewall controls, operating-system maintenance, and restart checks.
 Administrative SSH normally uses the RB5009 router's dedicated WireGuard connection outside Kubernetes.
 The desktop retains a separate WireGuard profile for manual recovery.
 The host uses synchronized UTC, daily unattended security updates, and controlled reboots.
-Private SSH and firewall checks pass after a complete host restart.
-Application directories, bounded logs, k3s installation, and Ansible automation remain planned.
+The journal has a size limit, and k3s limits container logs.
+k3s `v1.36.5+k3s1` runs as one server without Traefik or ServiceLB.
+The Kubernetes API is reachable only through the WireGuard management connection.
+SSH, firewall, Kubernetes readiness, DNS, and persistent-volume checks pass after a complete host restart.
 The [storage layout](bootstrap/host/STORAGE.md) keeps `/`, `/var`, and `/srv` on separate filesystems.
 
 ## Deployment decisions
