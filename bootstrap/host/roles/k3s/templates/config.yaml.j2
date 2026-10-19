@@ -1,0 +1,16 @@
+# Managed by Ansible. HOSTING.md defines these settings.
+disable:
+  - traefik
+  - servicelb
+tls-san:
+  - {{ delta_wg_address }}
+write-kubeconfig-mode: "0600"
+secrets-encryption: true
+cluster-cidr: {{ k3s_pod_cidr }}
+service-cidr: {{ k3s_service_cidr }}
+default-local-storage-path: {{ k3s_volume_path }}
+kubelet-arg:
+  - container-log-max-size=10Mi
+  - container-log-max-files=3
+kube-proxy-arg:
+  - nodeport-addresses=127.0.0.1/32

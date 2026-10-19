@@ -39,9 +39,13 @@ ansible-playbook facts.yml
 | `updates` | Daily package lists and unattended security updates. |
 | `storage` | The `/var` and `/srv` mounts, the cloud-init growth setting, and the application and backup directories. |
 | `logging` | A journal limit of 1 GiB and 30 days of retention. |
+| `k3s` | The pinned k3s release, its configuration, its firewall allowances, and the operator kubeconfig. |
 
 The `wireguard` role does not manage the interface configuration, because that file contains the private key.
 The `storage` role does not create partitions, volumes, or filesystems.
+The `k3s` role stops when the host has swap or lacks the `/var` and `/srv` mounts.
+It writes the operator kubeconfig to `~/.kube/delta-observatory.yaml`, with mode `0600`.
+That kubeconfig connects to the API through the WireGuard management address.
 The private inventory supplies the management addresses, the SSH peers, and the filesystem UUIDs.
 
 ```bash

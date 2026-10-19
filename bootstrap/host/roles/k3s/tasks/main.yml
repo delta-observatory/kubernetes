@@ -1,0 +1,143 @@
+- name: Check that the host has no swap
+  ansible.builtin.command: swapon --show --noheadings
+  register: k3s_swap
+  changed_when: false
+  check_mode: false
+
+- name: Stop if swap or a filesystem mount is missing from the expected state
+  ansible.builtin.assert:
+    that:
+      - k3s_swap.stdout | length == 0
+      - ansible_facts.mounts | selectattr('mount', 'equalto', '/var') | list | length == 1
+      - ansible_facts.mounts | selectattr('mount', 'equalto', '/srv') | list | length == 1
+    fail_msg: k3s requires no swap and separate /var and /srv filesystems.
+
+- name: Create the persistent volume directory
+  ansible.builtin.file:
+    path: "{{ k3s_volume_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0711"
+
+# Pods and services reach the node. The API is reachable only through WireGuard.
+- name: Permit traffic from pods and services to the node
+  community.general.ufw:
+    rule: allow
+    from_ip: "{{ item.cidr }}"
+    comment: "{{ item.comment }}"
+  loop:
+    - { cidr: "{{ k3s_pod_cidr }}", comment: k3s pods }
+    - { cidr: "{{ k3s_service_cidr }}", comment: k3s services }
+  loop_control:
+    label: "{{ item.comment }}"
+
+- name: Permit the Kubernetes API from each management peer through WireGuard only
+  community.general.ufw:
+    rule: allow
+    interface_in: "{{ delta_wg_interface }}"
+    from_ip: "{{ item.address }}"
+    to_ip: "{{ delta_wg_address }}"
+    port: "6443"
+    proto: tcp
+    comment: "{{ item.comment }} Kubernetes API"
+  loop: "{{ delta_ssh_peers }}"
+  loop_control:
+    label: "{{ item.comment }}"
+
+- name: Create the k3s configuration directory
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write the k3s configuration
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart k3s
+
+- name: Create the k3s service drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/k3s.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Start k3s only after its data filesystems are mounted
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/k3s.service.d/10-mounts.conf
+    content: |
+      [Unit]
+      RequiresMountsFor=/var/lib/rancher {{ k3s_volume_path }}
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart k3s
+
+- name: Read the installed k3s version
+  ansible.builtin.command: /usr/local/bin/k3s --version
+  register: k3s_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Download the install script for the pinned version
+  ansible.builtin.get_url:
+    url: "https://raw.githubusercontent.com/k3s-io/k3s/{{ k3s_version | urlencode }}/install.sh"
+    dest: /usr/local/share/k3s-install.sh
+    checksum: "sha256:{{ k3s_install_sha256 }}"
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install the pinned k3s version
+  ansible.builtin.command: /usr/local/share/k3s-install.sh
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+  when: k3s_version not in k3s_installed.stdout
+  changed_when: true
+
+- name: Start k3s at boot
+  ansible.builtin.systemd_service:
+    name: k3s.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  # In check mode before the first installation, the unit does not exist yet.
+  when: not ansible_check_mode or k3s_installed.rc == 0
+
+- name: Apply a pending k3s restart before the readiness check
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait until the node is ready
+  ansible.builtin.command: >-
+    /usr/local/bin/k3s kubectl wait --for=condition=Ready
+    node/{{ inventory_hostname }} --timeout=300s
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Read the administrator kubeconfig
+  ansible.builtin.slurp:
+    src: /etc/rancher/k3s/k3s.yaml
+  register: k3s_kubeconfig
+  when: not ansible_check_mode
+
+# The local copy connects through WireGuard and uses its own context name.
+- name: Save the kubeconfig on the operator's computer
+  ansible.builtin.copy:
+    dest: "{{ k3s_local_kubeconfig }}"
+    content: >-
+      {{ k3s_kubeconfig.content | b64decode
+         | replace('https://127.0.0.1:6443', 'https://' ~ delta_wg_address ~ ':6443')
+         | regex_replace('(?m)^(\s*(?:- )?(?:name|cluster|user|current-context): )default$', '\1delta-observatory') }}
+    mode: "0600"
+  delegate_to: localhost
+  become: false
+  when: not ansible_check_mode
