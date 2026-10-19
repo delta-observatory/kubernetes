@@ -1,0 +1,16 @@
+# Stage 1: cluster controllers and shared configuration for the OVH VPS.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infrastructure
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./infrastructure/ovh-production
+  prune: true
+  wait: true
