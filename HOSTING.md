@@ -20,6 +20,7 @@ No cloud deployment, Flux configuration, or host preparation automation exists h
 | Application | Existing frontend, API, and worker images | Preserves one maintained application across both installations. |
 | Storage | Node-local persistent volumes | Fits one host without a distributed storage service. |
 | Public access | Cloudflare Tunnel and Cloudflare Access | Provides an authenticated entry without public application ports on the host. |
+| Continuous integration | Standard GitHub-hosted Linux runners | Tests and image builds use public repository runner allowances. |
 | Image distribution | GHCR images pinned by digest | Gives the host reproducible images without building source on the VPS. |
 
 GitOps means that the cluster regularly applies its declared state from Git.
@@ -187,7 +188,7 @@ A release must wait for its own migration Job, not a previous successful Job.
 Protect namespaces, database resources, and persistent volumes from automatic deletion when Git resources disappear.
 Test those deletion controls in a disposable environment.
 
-Build images from committed component sources through CI or an equivalent reproducible build procedure.
+Build images from committed component sources through GitHub Actions.
 Do not build images from live working trees on the VPS.
 Record source commits, image digests, contract versions, and migration requirements for each release.
 Update the cloud overlay through one reviewed deployment change.
@@ -209,6 +210,67 @@ A Git revert changes desired images and configuration. It does not reverse datab
 Use an earlier image only when it supports the current schema.
 Otherwise, restore the coordinated backup with writers stopped and Flux reconciliation suspended.
 Document the records that a restore would delete before executing it.
+
+## GitHub Actions and Flux workflow
+
+This workflow is planned, not implemented.
+GitHub Actions performs continuous integration: tests, configuration checks, and image builds.
+Flux performs continuous deployment by applying the selected configuration from this repository.
+GitHub hosts the build runners. The VPS runs Flux and the application.
+
+1. Run component tests on pull requests and pushes to `main`.
+2. Build images only after the required tests pass on trusted `main` commits or release tags.
+3. Publish the four component images to GHCR with source commit metadata.
+4. Open a deployment pull request in `kubernetes/` with the exact image digests.
+5. Check rendered manifests, image availability, contract compatibility, and migration ordering in that pull request.
+6. Merge the deployment pull request after its checks and release review pass.
+7. Let Flux apply the cloud configuration through the dependency stages described above.
+8. Check migration completion, application readiness, and the deployed image digests.
+
+A component image upload does not select that image for deployment.
+The deployment pull request selects a compatible release set.
+Use commit tags for development images and version tags for releases.
+Use digests in deployment manifests because tags can change.
+Keep deployment pull requests subject to review initially.
+Automatic merges require a separate operating decision.
+
+Give build workflows only the repository and package permissions that they need.
+Use the repository's `GITHUB_TOKEN` to publish its images.
+Use a narrowly scoped GitHub App token to open deployment pull requests across repositories.
+Configure that App only for the required repositories and pull request operations.
+Ensure its deployment pull requests start the required checks.
+Keep publication credentials unavailable to untrusted pull request code.
+Pin third-party Actions to full commit hashes.
+
+GitHub runners need no host SSH keys, kubeconfig, or Kubernetes API access.
+Flux reads the deployment repository from inside the cluster.
+Do not install a build runner on the production VPS.
+Keep scientific records and private research inputs outside public workflow logs, artifacts, caches, and images.
+
+### Free service usage
+
+The plan targets no additional CI/CD service charge under the current free allowances.
+The VPS, domain, and remote backup storage remain separate costs.
+Flux has no software licence charge.
+
+| Service | Free usage condition |
+|---|---|
+| GitHub Actions compute | Standard GitHub-hosted runners in public repositories are free. Larger runners incur charges. |
+| Private repository workflows | Hosted runner usage must remain within the organization's included allowance. |
+| GHCR | Container image storage and bandwidth are currently free. |
+| Actions artifacts and caches | Retention and usage must remain within the applicable free storage allowances. |
+
+The [Actions billing documentation](https://docs.github.com/en/billing/concepts/product-billing/github-actions) defines runner and storage allowances.
+The [Packages billing documentation](https://docs.github.com/en/billing/concepts/product-billing/github-packages) describes the current GHCR policy.
+The [Flux documentation](https://fluxcd.io/flux/) describes the deployment controller.
+These service policies can change.
+
+Use standard Linux runners for the public application repositories.
+Keep the research repositories private.
+Set short retention for test artifacts and bounded cache use.
+Configure billing controls to block paid usage where GitHub supports that control.
+Check organization billing settings before enabling workflows.
+Do not treat free runner compute as unlimited free artifact storage.
 
 ## Backup and recovery
 
