@@ -13,15 +13,16 @@ One GiB equals 1,073,741,824 bytes.
 | Mount or allocation | Proposed size | Contents |
 |---|---:|---|
 | `/` | 16 GiB | Operating-system files, configuration, and administrator homes. |
-| `/var` | 20 GiB | Package state, logs, container images, container writable layers, and temporary Kubernetes data. |
-| `/srv` | 32 GiB | Database volumes, artifacts, observations, catalog files, and protected operator backups. |
-| Unallocated logical-volume capacity | Approximately 5.9 GiB | Capacity for later filesystem growth after review. |
+| `/var` | 16 GiB | Package state, logs, container images, container writable layers, and temporary Kubernetes data. |
+| `/srv` | All remaining usable capacity, approximately 41.9 GiB | Database volumes, artifacts, observations, catalog files, and protected operator backups. |
 | Existing boot partitions | Unchanged | Bootloader, kernel images, initramfs files, and EFI files. |
 
 The root filesystem retains its existing partition, filesystem identity, and start sector.
 Its reduced partition size releases space for one new partition.
 The new partition contains an LVM volume group with separate logical volumes for `/var` and `/srv`.
-LVM divides a storage device into volumes that can grow using unallocated capacity.
+LVM divides a storage device into logical volumes.
+The `/srv` volume receives all capacity remaining after the 16 GiB `/var` allocation.
+The volume group retains no deliberate free-capacity reserve.
 Only `/var` and `/srv` use this volume group.
 No filesystem uses automatic volume growth.
 
@@ -68,7 +69,7 @@ Before the rescue reboot:
 
 1. Obtain approval for downtime and changes to the root partition.
 2. Check recovery-console access and the rescue procedure.
-3. Check how public SSH remains blocked while the separate rescue system runs.
+3. Check provider firewall coverage and the approved rescue access policy.
 4. Prepare private access to the rescue system through the console and the approved WireGuard connection.
 5. Record disk geometry, partition identities, filesystem UUIDs, mount options, package versions, and access configuration in private operator records.
 6. Prepare protected storage outside the VPS for its recovery image and checksums.
@@ -76,7 +77,32 @@ Before the rescue reboot:
 
 The installed host firewall does not protect a separate rescue system.
 Check provider firewall coverage before relying on it during rescue boot.
+Record any approved temporary exception to the public SSH restriction.
 Do not start migration without a working private rescue path and external recovery storage.
+
+### Rescue access checks
+
+Use a temporary SSH service on a separate management port during rescue access checks.
+Keep the original SSH service available until its replacement passes these checks:
+
+1. Check the replacement configuration with the SSH daemon's absolute executable path.
+2. Start the replacement with its absolute executable path.
+3. Check a new SSH key connection through WireGuard.
+4. Check console access while the new connection remains available.
+5. Stop only the original SSH service after both access checks pass.
+6. Check another new private SSH connection after stopping the original service.
+
+Do not stop all SSH daemon processes.
+Do not close the working administrator session before the replacement connection passes.
+
+If rescue access fails, return to regular boot through the OVH control panel before further maintenance.
+The [provider's regular restart action](https://docs.ovhcloud.com/en/guides/bare-metal-cloud/virtual-private-servers/understand-vps-control-panel#rebootvps) is `Reboot my VPS`.
+A restart inside the rescue operating system can retain rescue mode.
+Check the provider boot mode after the restart.
+Check a new private SSH connection to the installed operating system.
+Do not infer recovery from a submitted restart request.
+
+### Disk migration
 
 In rescue mode:
 
@@ -105,7 +131,7 @@ Use the verified disk image for recovery when partition ownership becomes uncert
 ## Acceptance
 
 1. Check separate filesystem identities for `/`, `/var`, and `/srv` after normal boot.
-2. Check the proposed sizes and the remaining unallocated LVM capacity.
+2. Check the approved sizes and the complete allocation of remaining LVM capacity to `/srv`.
 3. Check that `/tmp` retains its memory-backed mount.
 4. Check that operator backups resolve to `/srv` and remain accessible only to root.
 5. Check ownership and contents against the migration records.

@@ -156,9 +156,8 @@ Do not use swap as a substitute for sufficient worker memory.
 | Disk allocation | Proposed size |
 |---|---:|
 | Root filesystem | 16 GiB |
-| `/var`, including k3s runtime files, images, and logs | 20 GiB |
-| `/srv`, including persistent application data and local backups | 32 GiB |
-| Unallocated LVM capacity | Approximately 5.9 GiB |
+| `/var`, including k3s runtime files, images, and logs | 16 GiB |
+| `/srv`, including persistent application data and local backups | All remaining usable capacity, approximately 41.9 GiB |
 | Existing boot partitions | Approximately 1.1 GiB |
 
 Within `/srv`, budget 10 GiB for PostgreSQL, including WAL.
