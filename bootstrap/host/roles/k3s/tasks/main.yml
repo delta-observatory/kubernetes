@@ -12,13 +12,14 @@
       - ansible_facts.mounts | selectattr('mount', 'equalto', '/srv') | list | length == 1
     fail_msg: k3s requires no swap and separate /var and /srv filesystems.
 
+# k3s also sets this mode when it starts.
 - name: Create the persistent volume directory
   ansible.builtin.file:
     path: "{{ k3s_volume_path }}"
     state: directory
     owner: root
     group: root
-    mode: "0711"
+    mode: "0700"
 
 # Pods and services reach the node. The API is reachable only through WireGuard.
 - name: Permit traffic from pods and services to the node

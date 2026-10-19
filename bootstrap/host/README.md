@@ -54,6 +54,7 @@ ansible-playbook site.yml --check --diff -K
 
 Sudo requires the `delta` password.
 Run each playbook that uses sudo with `-K`, so that Ansible asks for that password.
+As an alternative, use `--become-password-file` with a file that only the operator can read, outside Git.
 Ansible uses `sudo.ws`, the original sudo, because `sudo-rs` changes the password prompt that Ansible expects.
 Run it with `--check --diff` first. Check mode reports differences and makes no change.
 
