@@ -35,16 +35,16 @@ An SSH reload requires a successful syntax check and inspection of the effective
 
 ## Private management connection
 
-A dedicated WireGuard connection links the administrator's computer directly to the VPS.
-The interface name is `wg-delta` on both hosts.
-The firewall permits SSH only through this connection.
-SSH continues to require the administrator's key.
-This connection does not change the home router, LAN routes, default route, or DNS settings.
+A dedicated WireGuard connection links the home RB5009 router to the VPS.
+The router interface is `wg-delta-ovh`. The VPS interface is `wg-delta`.
+The approved home LAN can reach only TCP port 22 on the VPS management address through this connection.
+SSH continues to require an authorized key on each administrator device.
+The existing home VPN, DNS settings, default routes, and network isolation rules retain their configuration.
 
-Each peer has one management address.
-Each peer's `AllowedIPs` contains only the other peer's management address, with a `/32` prefix.
-The host connection requires no forwarding or masquerading.
-Keep peer addresses, public keys, and the VPS endpoint in the private inventory.
+Each WireGuard peer has one management address.
+Each peer's allowed address contains only the other peer's management address, with a `/32` prefix.
+The VPS has separate router and desktop peers.
+Keep peer addresses, public keys, the approved LAN range, and the VPS endpoint in the private inventory.
 Keep private keys outside Git and public logs.
 
 The VPS stores its configuration in `/etc/wireguard/wg-delta.conf`, owned by root with mode `0600`.
@@ -52,9 +52,38 @@ The parent directory has mode `0700`.
 The `wg-quick@wg-delta.service` unit starts at boot, independently of Kubernetes.
 The VPS listens on UDP port 51820.
 
-NetworkManager stores and activates the desktop's `wg-delta` profile.
-The profile starts automatically and uses `PersistentKeepalive = 25` for the connection through the home router.
+### Router policy
+
+The router starts the connection to the public VPS endpoint.
+Its UDP listen port is 51823, and its keepalive interval is 25 seconds.
+The interface MTU is 1420 bytes.
+The existing firewall permits replies to the router's outbound connection without an additional public inbound allowance.
+The management interface remains outside the router's `LAN` interface list.
+
+Only the VPS management address has a host route through the management interface.
+Both `main` and `wan2` contain this `/32` route, which preserves management access for devices with existing WAN routing policies.
+The public VPS endpoint follows the current main Internet route.
+Automatic failover between Internet connections is outside this configuration.
+
+The router's `delta-ovh` firewall chain permits LAN SSH requests and their replies.
+It blocks other forwarded tunnel traffic, including new connections from the VPS to the LAN.
+Its forward-chain entry rules follow the existing network isolation checks and precede FastTrack.
+The router translates permitted LAN SSH connections to its own management address.
+The VPS requires no route to the home LAN.
+Existing remote VPN clients are outside the approved source range.
+
+Router objects use the comment prefix `delta-ovh:`.
+The [RouterOS WireGuard documentation](https://manual.mikrotik.com/docs/virtual-private-networks/wireguard/) describes peer, route, and firewall configuration.
+
+### Desktop recovery connection
+
+NetworkManager retains the desktop's `wg-delta` profile for manual recovery.
+The profile has `connection.autoconnect=no` and remains inactive during normal router access.
+It uses `PersistentKeepalive = 25` when active.
 The profile has `ipv4.never-default=yes`, no DNS entries, and IPv6 disabled on this dedicated interface.
+Activating this profile routes only the VPS management address directly from the desktop through WireGuard.
+Deactivating it returns management traffic to the router.
+
 The [WireGuard quick start](https://www.wireguard.com/quickstart/) explains peer keys and keepalive behavior.
 The [NetworkManager guide](https://blogs.gnome.org/thaller/2019/03/15/wireguard-in-networkmanager/) explains profile import and automatic connections.
 
@@ -73,13 +102,14 @@ UFW starts at boot and filters IPv4 and IPv6 traffic.
 | Outgoing traffic | Allow by default. |
 | Forwarded traffic | Deny. Kubernetes requires a separate review of this policy. |
 | Public inbound service | UDP port 51820 for WireGuard, for both address families. |
-| Private inbound service | TCP port 22 on `wg-delta`, from the approved peer address to the VPS management address. |
+| Private inbound service | TCP port 22 on `wg-delta`, from either approved peer address to the VPS management address. |
 | Public SSH | No allowance for TCP port 22, for either address family. |
 | Logging | UFW level `low`. |
 
 The WireGuard allowance has the comment `WireGuard management`.
-The private SSH allowance has the comment `Private SSH`.
-WireGuard authenticates the administrator's device without a fixed home public address.
+The desktop SSH allowance has the comment `Private SSH`.
+The router SSH allowance has the comment `Router private SSH`.
+WireGuard authenticates each peer without a fixed home public address.
 
 ## Verification
 
@@ -106,25 +136,34 @@ Run these checks on the administrator's computer:
 
 ```bash
 nmcli -g connection.autoconnect,ipv4.never-default,ipv4.dns,ipv6.method connection show wg-delta
-ip -4 route show dev wg-delta
-ssh -S none -o BatchMode=yes -o StrictHostKeyChecking=yes delta
+ssh -S none -o BatchMode=yes -o StrictHostKeyChecking=yes delta 'printf "%s\n" "$SSH_CONNECTION"'
 ```
 
-The profile must show automatic connection, no default route, no DNS entries, and IPv6 disabled.
-Only the VPS management address must use the WireGuard route.
-Check that the public VPS endpoint and home LAN retain their normal routes.
+The desktop profile must show automatic connection disabled, no default route, no DNS entries, and IPv6 disabled.
+Normal SSH connections must reach the VPS with the router's management address as their source.
+The desktop recovery profile must remain inactive during this check.
+
+Check the router's peer handshake, both management routes, firewall counters, and source translation counters.
+Check that the management forwarding rules follow existing isolation rules and precede FastTrack.
+Compare private configuration exports before and after changes, excluding only the tagged additions.
+Check that the public VPS endpoint and other LAN destinations retain their normal routes.
 
 Test a new SSH connection from the administrator's computer with connection sharing disabled.
 Check that the server permits only public-key authentication.
 Test a new TCP connection to port 22 through the public IPv4 address.
 Check that the connection fails and UFW records the blocked packets.
+Test another TCP port through the management address from the LAN.
+Check that the router's tunnel drop counter increases.
+Check that the VPS cannot start an SSH connection to the router's management address.
 Test a temporary TCP listener on another port through the public IPv4 address.
 Check local access to the listener before testing external access.
 Check that UFW records the blocked external connection in the kernel log.
 Remove the listener after the test.
 
-Test a WireGuard service restart and a desktop profile reconnection before removing bootstrap SSH access.
-Check a new private SSH connection after both restarts.
+Test the desktop recovery profile before changing the primary management route.
+Use automatic desktop profile restoration while testing the router with the desktop profile inactive.
+Cancel restoration only after a new router-mediated SSH connection and the blocking checks pass.
+Test service and profile reconnection before relying on them for recovery.
 Enabled services alone do not establish recovery after a complete host restart.
 
 External IPv6 verification requires a public IPv6 address and an external IPv6 test client.
@@ -144,6 +183,34 @@ Before removing bootstrap SSH access, schedule a five-minute rollback that resto
 Remove the allowance only after a new private SSH connection succeeds.
 Cancel the rollback only after another private SSH connection succeeds and the public SSH test fails.
 Check that both rollback units remain inactive.
+
+Router changes require a five-minute rollback that removes only their tagged additions.
+Check its complete script source and scheduled execution before applying router changes.
+Cancel the rollback only after router-mediated SSH and traffic restriction checks pass.
+Remove temporary rollback objects after cancellation.
+RouterOS Safe Mode also covers changes from other login sessions, as the [configuration manual](https://manual.mikrotik.com/docs/getting-started/configuration-management/) explains.
+A targeted rollback protects other operators' work.
+
+Upload multiline RouterOS configuration as an inert `.rsc` file.
+Check it with `/import file-name=<file> verbose=yes dry-run` before application.
+The `dry-run` parameter is a flag without `=yes`.
+Do not submit multiline blocks directly through SSH command mode.
+Remove temporary imports after verification.
+
+Private router configuration exports and approved scripts reside under `~/.local/state/delta-observatory/operator/router/` on the administrator's computer.
+These exports omit private keys and do not replace a complete credential recovery procedure.
+
+For desktop recovery, activate the retained profile:
+
+```bash
+nmcli connection up wg-delta
+```
+
+After router recovery, deactivate the desktop profile:
+
+```bash
+nmcli connection down wg-delta
+```
 
 If WireGuard fails, use the OVH KVM console to inspect its service, configuration, and firewall allowance.
 Keep recovery credentials outside the VPS.

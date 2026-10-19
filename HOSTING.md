@@ -9,7 +9,8 @@ This document defines planned work. The repository currently deploys the home in
 No cloud deployment, Flux configuration, or host preparation automation exists here yet.
 
 The [initial host baseline](bootstrap/host/README.md) defines the configured SSH and host firewall controls.
-Administrative SSH uses a dedicated WireGuard connection outside Kubernetes.
+Administrative SSH normally uses the RB5009 router's dedicated WireGuard connection outside Kubernetes.
+The desktop retains a separate WireGuard profile for manual recovery.
 K3s installation and Ansible automation remain planned.
 
 ## Deployment decisions
@@ -20,7 +21,7 @@ K3s installation and Ansible automation remain planned.
 | Deployment repository | This `kubernetes` repository | Keeps desired deployment state beside the existing manifests. |
 | GitOps controller | Flux | Applies repository changes and reports differences from the desired state. |
 | Host preparation | Ansible, with a minimal initial SSH setup | Keeps operating-system configuration repeatable and independent of Kubernetes. |
-| Administrative access | Dedicated WireGuard connection and SSH key authentication | Keeps public SSH closed and recovery independent of Kubernetes. |
+| Administrative access | Router WireGuard connection, SSH keys, and a manual desktop recovery connection | Keeps public SSH closed and recovery independent of Kubernetes. |
 | Database | One CloudNativePG PostgreSQL instance | Preserves the database contracts and PostgreSQL job queue. |
 | Application | Existing frontend, API, and worker images | Preserves one maintained application across both installations. |
 | Storage | Node-local persistent volumes | Fits one host without a distributed storage service. |
@@ -74,7 +75,7 @@ Complete these steps before the first application deployment:
 5. Create an administrator account with SSH key authentication and sudo access.
 6. Test a second SSH session and the OVH recovery console.
 7. Disable SSH password authentication and direct root SSH access.
-8. Restrict SSH to the approved WireGuard peer after testing private access and recovery.
+8. Restrict SSH to the approved WireGuard peers after testing private access and recovery.
 9. Configure equivalent IPv4 and IPv6 firewall rules.
 10. Apply operating-system security updates and configure time synchronization.
 11. Configure security update installation with explicit maintenance windows for reboots.
