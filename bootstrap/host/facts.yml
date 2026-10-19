@@ -1,0 +1,14 @@
+# Read-only check of connection and host facts. It does not use sudo.
+- name: Report host facts
+  hosts: vps
+  gather_facts: true
+  tasks:
+    - name: Show the host facts that the playbooks depend on
+      ansible.builtin.debug:
+        msg:
+          hostname: "{{ ansible_facts.hostname }}"
+          distribution: "{{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}"
+          kernel: "{{ ansible_facts.kernel }}"
+          architecture: "{{ ansible_facts.architecture }}"
+          memory_mb: "{{ ansible_facts.memtotal_mb }}"
+          mounts: "{{ ansible_facts.mounts | selectattr('mount', 'in', ['/', '/var', '/srv']) | map(attribute='mount') | list }}"

@@ -1,0 +1,9 @@
+# Copy to ~/.config/delta-observatory/ansible/inventory.yml and keep it outside Git.
+# ansible_host names the SSH alias for the private WireGuard address.
+all:
+  children:
+    vps:
+      hosts:
+        delta-observatory-vps-01:
+          ansible_host: delta
+          ansible_user: delta

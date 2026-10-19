@@ -3,8 +3,34 @@
 This document defines the host baseline before k3s installation.
 The baseline covers administrator access, the hostname, the host firewall, operating-system maintenance, and recovery checks.
 [HOSTING.md](../../HOSTING.md) defines the remaining host preparation and deployment work.
-Ansible automation remains planned.
+[Ansible](#ansible) applies the host configuration from this directory.
 The [storage layout](STORAGE.md) keeps `/`, `/var`, and `/srv` on separate filesystems.
+
+## Ansible
+
+Ansible applies host configuration through SSH from the operator's computer.
+Install the pinned control tools from this directory:
+
+```bash
+uv tool install ansible-core==2.21.5
+ansible-galaxy collection install -r requirements.yml
+```
+
+The collections install into `collections/`, which Git ignores.
+Copy [inventory.example.yml](inventory.example.yml) to `~/.config/delta-observatory/ansible/inventory.yml`.
+Keep that inventory outside Git.
+Its `ansible_host` value is the SSH alias for the private WireGuard address.
+
+Run each playbook from this directory.
+[facts.yml](facts.yml) checks the connection and reports host facts without sudo:
+
+```bash
+ansible-playbook facts.yml
+```
+
+Sudo requires the `delta` password.
+Run each playbook that uses sudo with `-K`, so that Ansible asks for that password.
+Run it with `--check --diff` first. Check mode reports differences and makes no change.
 
 ## Access and hostname
 
