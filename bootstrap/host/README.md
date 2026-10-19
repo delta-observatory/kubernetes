@@ -4,6 +4,8 @@ This document defines the host baseline before k3s installation.
 The baseline covers administrator access, the hostname, the host firewall, operating-system maintenance, and recovery checks.
 [HOSTING.md](../../HOSTING.md) defines the remaining host preparation and deployment work.
 Ansible automation remains planned.
+The [storage plan](STORAGE.md) requires separate `/var` and `/srv` filesystems before k3s installation.
+Partition migration remains pending.
 
 ## Access and hostname
 

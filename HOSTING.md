@@ -14,6 +14,8 @@ The desktop retains a separate WireGuard profile for manual recovery.
 The host uses synchronized UTC, daily unattended security updates, and controlled reboots.
 Private SSH and firewall checks pass after a complete host restart.
 Application directories, bounded logs, k3s installation, and Ansible automation remain planned.
+Root capacity isolation remains required before k3s installation.
+The [storage plan](bootstrap/host/STORAGE.md) defines proposed sizes, offline migration requirements, and acceptance checks.
 
 ## Deployment decisions
 
@@ -27,6 +29,7 @@ Application directories, bounded logs, k3s installation, and Ansible automation 
 | Database | One CloudNativePG PostgreSQL instance | Preserves the database contracts and PostgreSQL job queue. |
 | Application | Existing frontend, API, and worker images | Preserves one maintained application across both installations. |
 | Storage | Node-local persistent volumes | Fits one host without a distributed storage service. |
+| Root capacity isolation | Separate `/var` and `/srv` filesystems | Keeps logs, containers, and application data from consuming root free space. |
 | Application access | Cloudflare Tunnel and Cloudflare Access | Provides an authenticated entry without public application ports on the host. |
 | Continuous integration | Standard GitHub-hosted Linux runners | Tests and image builds use public repository runner allowances. |
 | Image distribution | GHCR images pinned by digest | Gives the host reproducible images without building source on the VPS. |
@@ -135,6 +138,7 @@ Do not copy the entire home installation merely to populate the cloud interface.
 
 These figures are initial planning budgets, not measured application requirements.
 Check actual usable capacity before assigning persistent volumes.
+Apply the [storage layout](bootstrap/host/STORAGE.md) before assigning cloud storage paths.
 
 | RAM allocation | Initial budget |
 |---|---:|
@@ -149,14 +153,20 @@ Preserve CPU capacity for PostgreSQL, the API, and cluster services during worke
 Reduce worker concurrency or job size if memory pressure occurs.
 Do not use swap as a substitute for sufficient worker memory.
 
-| Disk use | Initial budget |
+| Disk allocation | Proposed size |
 |---|---:|
-| Operating system, k3s, images, and logs | 20 GB |
-| PostgreSQL, including WAL | 10 GB |
-| Artifacts | 10 GB |
-| Selected observations and metadata | 10 GB |
-| Temporary backup and release files | 5 GB |
-| Free space and capacity differences | 20 GB |
+| Root filesystem | 16 GiB |
+| `/var`, including k3s runtime files, images, and logs | 20 GiB |
+| `/srv`, including persistent application data and local backups | 32 GiB |
+| Unallocated LVM capacity | Approximately 5.9 GiB |
+| Existing boot partitions | Approximately 1.1 GiB |
+
+Within `/srv`, budget 10 GiB for PostgreSQL, including WAL.
+Budget 8 GiB each for artifacts and selected inputs with their metadata.
+Budget 2 GiB for temporary backup and release files.
+The remaining capacity covers filesystem overhead and free space.
+These budgets do not enforce directory quotas.
+Remote backup storage remains separate.
 
 Persistent volume requests do not enforce filesystem quotas with the default local-path provisioner.
 Monitor actual disk use across all directories.
