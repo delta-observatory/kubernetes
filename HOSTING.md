@@ -7,7 +7,8 @@ The home installation remains the private environment for large scientific workl
 
 This document defines planned work. The repository currently deploys the home installation through the commands in [README.md](README.md).
 The [host playbook](bootstrap/host/README.md#ansible) prepares the VPS and installs k3s.
-No cloud application deployment or Flux configuration exists here yet.
+Flux v2.9.6 reconciles the cluster from [clusters/ovh-production/](clusters/ovh-production/).
+No cloud application deployment exists here yet.
 
 The [initial host baseline](bootstrap/host/README.md) defines configured access, firewall controls, operating-system maintenance, and restart checks.
 Administrative SSH normally uses the RB5009 router's dedicated WireGuard connection outside Kubernetes.
@@ -200,6 +201,27 @@ The [Flux GitHub bootstrap procedure](https://fluxcd.io/flux/installation/bootst
 Run bootstrap only as part of an explicitly requested deployment.
 Prefer read-only repository access for the running controller.
 Keep image automation disabled initially.
+
+The organization disables repository deploy keys.
+This repository is public, so source-controller reads it through HTTPS without a credential.
+The cluster stores no Git credential, and Flux cannot write to the repository.
+If the repository becomes private, add a read-only credential before the change of visibility.
+
+Flux applies these Kustomizations in order:
+
+| Kustomization | Path | Dependency |
+|---|---|---|
+| `flux-system` | `clusters/ovh-production/` | None. It applies the Flux controllers and the two stages. |
+| `infrastructure` | `infrastructure/ovh-production/` | None. |
+| `apps` | `apps/delta-observatory/overlays/ovh-production/` | `infrastructure` |
+
+Each stage uses `prune: true` and waits for the health of its resources.
+A push to `main` that changes these paths changes the cluster.
+`base/` and `builds/` are outside these paths, so Flux does not apply the home deployment.
+
+Upgrade Flux with a reviewed change to `clusters/ovh-production/flux-system/gotk-components.yaml`.
+Generate that file with `flux install --export` from the pinned CLI version.
+Do not run `flux bootstrap` again without a plan for its deploy key step, because it replaces `gotk-sync.yaml`.
 
 Configure dependency stages for controllers, storage and database, migrations, and application workloads.
 Use readiness checks and version-specific migration Jobs.

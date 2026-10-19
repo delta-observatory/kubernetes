@@ -3,7 +3,7 @@
 This repository is one component of [Delta Observatory](https://github.com/delta-observatory/delta-observatory). The entry repository describes the application and restores every component.
 
 This repository holds the k3s manifests for the Delta Observatory components on a single k3s node.
-Manifests are applied with `kubectl`. No GitOps controller and no image registry are involved.
+The home installation applies these manifests with `kubectl`. It uses no GitOps controller and no image registry.
 
 ```text
 LAN ──► NodePort 30871 ──► Service delta-frontend ──► Deployment delta-frontend (nginx, static files)
@@ -29,6 +29,8 @@ LAN ──► NodePort 30870 ──► Service delta-api ──► Deployment de
 [HOSTING.md](HOSTING.md) defines the OVH host preparation and deployment plan.
 It selects single-node k3s and Flux, with separate cloud configuration, access controls, and recovery checks.
 The plan does not change the current local deployment procedure.
+Flux reconciles the OVH cluster from `clusters/ovh-production/`, `infrastructure/ovh-production/`, and `apps/delta-observatory/overlays/ovh-production/`.
+The home installation does not use those paths.
 
 ## Files
 
