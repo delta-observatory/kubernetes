@@ -24,6 +24,12 @@ LAN ──► NodePort 30870 ──► Service delta-api ──► Deployment de
 - Database: CNPG cluster `delta-db`, database and owner `delta`. CNPG creates the Secret `delta-db-app`.
 - Images: `localhost/delta-<component>:<tag>`, built in the cluster by kaniko, `imagePullPolicy: Never`.
 
+## Cloud hosting plan
+
+[HOSTING.md](HOSTING.md) defines the OVH host preparation and deployment plan.
+It selects single-node k3s and Flux, with separate cloud configuration, access controls, and recovery checks.
+The plan does not change the current local deployment procedure.
+
 ## Files
 
 | File | Content |
