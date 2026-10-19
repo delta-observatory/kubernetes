@@ -1,0 +1,2 @@
+logging_journal_max_use: 1G
+logging_journal_retention: 30day

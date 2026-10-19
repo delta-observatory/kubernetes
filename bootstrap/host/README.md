@@ -38,6 +38,7 @@ ansible-playbook facts.yml
 | `wireguard` | The package, configuration permissions, and the interface service. |
 | `updates` | Daily package lists and unattended security updates. |
 | `storage` | The `/var` and `/srv` mounts, the cloud-init growth setting, and the application and backup directories. |
+| `logging` | A journal limit of 1 GiB and 30 days of retention. |
 
 The `wireguard` role does not manage the interface configuration, because that file contains the private key.
 The `storage` role does not create partitions, volumes, or filesystems.
