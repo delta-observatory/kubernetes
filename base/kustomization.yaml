@@ -21,6 +21,8 @@ configMapGenerator:
       - DELTA_ARTIFACT_ROOT=/data/artifacts
       - DELTA_CORS_ORIGINS=
       - DELTA_COHORTS_PATH=/data/experiments/cohorts.json
+      - DELTA_DATASETS_ROOT=/data/datasets
+      - DELTA_EXPERIMENTS_ROOT=/data/experiments
   # Image tags of the running release. Keep them equal to images[].newTag.
   # Source commits: database 4e0d1ae, workers ea1f95e, backend 64c8605, frontend 80dfca0.
   # Update this line with each release. The build context is the working tree, so commit first.

@@ -40,7 +40,7 @@ The home installation does not use those paths.
 | `base/database.yaml` | CNPG `Cluster` with one instance on `local-path` storage. |
 | `base/storage.yaml` | `delta-artifacts` PVC for artifact files. |
 | `base/worker.yaml` | Worker Deployment. Mounts `raw/` and `datasets/` read-only and the artifact PVC read-write. |
-| `base/api.yaml` | API Deployment and NodePort Service. Mounts the artifact PVC and `experiments/` read-only. The cohort guard reads `experiments/cohorts.json`. |
+| `base/api.yaml` | API Deployment and NodePort Service. Mounts the artifact PVC, `datasets/`, and `experiments/` read-only. The API reads catalog descriptions and the cohort register. |
 | `base/frontend.yaml` | Frontend Deployment and NodePort Service 30871. No volumes except temporary nginx directories. |
 | `base/kustomization.yaml` | Resources, environment ConfigMaps, and the selected image tags. |
 | `builds/build-image.template.yaml` | kaniko build Job template. Not in the kustomization. |
