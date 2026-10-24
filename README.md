@@ -7,7 +7,7 @@ The home installation applies these manifests with `kubectl`. It uses no GitOps 
 
 ```text
 LAN ──► NodePort 30871 ──► Service delta-frontend ──► Deployment delta-frontend (nginx, static files)
-                                                          │ /api/
+                                                          │ /api/ and /gui-api/
                                                           ▼
 LAN ──► NodePort 30870 ──► Service delta-api ──► Deployment delta-api (stateless)
                                                      │ reads rows, and experiments/cohorts.json (host path, read-only)
@@ -19,10 +19,15 @@ LAN ──► NodePort 30870 ──► Service delta-api ──► Deployment de
 ```
 
 - Namespace: `delta-observatory`
-- Frontend: `http://<node>:30871/`, where `<node>` is the node address on the LAN. nginx sends `/api/` to the `delta-api` Service.
+- Frontend: `http://<node>:30871/`, where `<node>` is the node address on the LAN. nginx sends `/api/` and `/gui-api/` to the `delta-api` Service.
 - API: `http://<node>:30870/api/docs` on the LAN. The API needs a bearer token. No ingress or TLS.
 - Database: CNPG cluster `delta-db`, database and owner `delta`. CNPG creates the Secret `delta-db-app`.
 - Images: `localhost/delta-<component>:<tag>`, built in the cluster by kaniko, `imagePullPolicy: Never`.
+
+The local GUI permits anonymous browsing through `/gui-api/` with the `gui-browser` service account.
+The API requires this account to be active with only the `read` permission and no campaign.
+`DELTA_GUI_READ_CLIENT=gui-browser` enables this access in the local API configuration.
+Searches and saved reviews require sign-in. Requests to `/api/` retain bearer-token authentication.
 
 ## Cloud hosting plan
 
